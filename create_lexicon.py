@@ -32,7 +32,10 @@ import json
 
 # Check for false positives
 # =======================================
-"""
+
+# TODO: remove Selena Rodriguez
+
+
 run_this = True
 code = False #if False, just list matches, if True, input whether to keep or remove token in lexicon
 
@@ -79,7 +82,7 @@ for construct in remove_tokens:
 
 
 
-
+"""
 lexicon
 - name
 - constructs
@@ -109,18 +112,22 @@ lexicon.constructs['loneliness'] = {
 
 
 
-"""
+
 # Actual code used:
 # =========
 
 ts = datetime.datetime.utcnow().strftime('%y-%m-%dT%H-%M-%S')
+
+
 
 lexicon = dill.load(open('data/lexicons/suicide_risk_lexicon_gpt-4-1106-preview_24-01-14T19-41-30.pickle', "rb"))
 
 # Choose which to add
 word_score_dir = './data/output/word_scores/'
 
-
+# Load from prior lexicon
+# 
+# ========================================================
 ctl_map = {'self_harm': 'Self-injury',
 		   'bereavement': 'Grief & bereavement',
 		   'anxiety_stress': 'Anxiety',
@@ -1757,4 +1764,3 @@ lexicon_df = lexicon.to_pandas()
 #
 #
 #
-"""

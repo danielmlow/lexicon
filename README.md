@@ -16,19 +16,19 @@ run `$tree -L 2`, for example:
 input
 ├── CTL
 │   ├── 
-├── Reddit
+├── reddit
 │   ├── 
-├── Lexicons
+├── lexicons
 │   ├── suicide_risk_lexicon
 │   │	├── preprocessing
 │   │	│	├── definitions and examples csv
 │   │	│	├── gpt-4 + word score first_pass_annotation csv
-│   │	├── suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52.pickle
+│   │	├── suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52.pickle # final one
 │   │	├── suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52.json
 │   │	├── suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52_metadata.json
 │   │	├── suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52.csv
 │   │	├── suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52_annotation.csv
-├── Features
+├── features
 │   ├── suicide_risk_lexicon
 │   ├── liwc-22
 
@@ -38,6 +38,8 @@ output
 ├── ml_performance
 ├── tables
 ├── figures
+
+
 
 
 
@@ -59,6 +61,9 @@ All final figures in tables are available in `./../data/output/lexicon_paper/`
 ### Creating dataset
 - Pulling data from CTL
 - Building datasets
+
+`train_test_split_ids.ipynb` in this repo. Takes downloaded data and creates datasets in the "risk assessment small" section 
+
 - cleaning
 
 
@@ -105,7 +110,10 @@ TODO: link to google slides
 ### Figure 3 (Suicide Risk Lexicon network analysis)
 `lexicon_network_dendrogram.ipynb`
 
-### Figure 4 (Inter-rater reliability)
+### Figure 4 (distribution of SRL matches)
+`barplot_srl_matches.py` 
+
+### Figure 5 (Inter-rater reliability)
 TODO add:
 
 

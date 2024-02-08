@@ -168,3 +168,65 @@ counts_final
 # set(source_tokens1).symmetric_difference(set(source_tokens2))
 
 # final_intesection = len(set(final_tokens).intersection(set(source_tokens)))
+
+
+
+# Add top matches
+# ========================================================================================================================
+from concept_tracker.lexicon import lemmatize_tokens
+from concept_tracker import lexicon
+import pickle
+with open('./data/input/ctl/ctl_dfs_features.pkl', 'rb') as f:
+	dfs = pickle.load(f)
+
+
+train_df = dfs['train']['df_text'][['text', 'y']]
+
+srl = load_lexicon('./../data/lexicons/suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52.pickle')
+
+srl = lemmatize_tokens(srl) # TODO: integrate this to class: self.lemmatize_tokens() adds tokens_lemmatized
+
+# Extract on l1_docs, l2_docs, l3_docs
+feature_vectors, matches_counter_d, matches_per_doc, matches_per_construct  = lexicon.extract(train_df['text'].tolist(),
+																					srl.constructs,normalize = False, return_matches=True,
+																					add_lemmatized_lexicon=True, lemmatize_docs=False,
+																					exact_match_n = srl.exact_match_n,exact_match_tokens = srl.exact_match_tokens)
+
+
+
+train_df_features = pd.concat([train_df, feature_vectors],axis=1)
+
+
+# false negatives on 20-40 documents
+# overlook matches_counter_d
+
+
+# TODO move to lexicon_source_descriptives.py
+# top words per construct
+n = 3
+len_docs  =len(train_df['text'].tolist())
+top_matches_per_construct = {}
+total_docs = len(train_df['text'].tolist())
+for construct in constructs_in_order:
+	
+	counts = list(matches_counter_d[construct].items())[:n]
+	# percentage:
+	counts = [[n[0], np.round(n[1]/len_docs*100,1)] for n in counts]
+	top_matches_per_construct[construct] = '; '.join([f'{n[0]} ({n[1]})' for n in counts])
+
+top_matches_per_construct_df = pd.DataFrame(top_matches_per_construct, index = ['Top matches'])
+top_matches_per_construct_df = top_matches_per_construct_df.T
+
+assert ('suicide ' in srl.constructs['Suicide exposure']['tokens']) == False
+'suicide' in srl.constructs['Suicide exposure']['remove']
+'suicide ' in srl.constructs['Suicide exposure']['tokens_lemmatized']
+
+lexicon_descriptives = pd.read_csv('./data/output/tables/lexicon_source_descriptives.csv', index_col = 0)
+lexicon_descriptives.index.name = 'Construct'
+
+
+top_matches_per_construct_d = dict(zip(top_matches_per_construct_df.index.values, top_matches_per_construct_df['Top matches'].values))
+lexicon_descriptives['Top matches'] = lexicon_descriptives.index.map(top_matches_per_construct_d)
+lexicon_descriptives.to_csv('./data/output/tables/lexicon_source_descriptives_with_top_matches.csv')
+
+
