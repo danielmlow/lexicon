@@ -110,6 +110,7 @@ srl.exact_match_tokens = []
 srl.add('Hospitalization', section = 'tokens', value = ['hospital', 'hospitalized','hospitalization','hospitalize', 'ER', 'emergency room','emergency','emergency department', 'psych unit', 'psych ward', 'psychiatric unit',
 														 'psychiatric ward', 'psychiatric hospital', 'in and out of the clinic','in and out of the hospital', 'inpatient', 'in patient', 'clinic', 'urgent care'],
 		source = ['DML adding'])
+srl.add('Hospitalization', section = 'examples', value = 'hospitalized; psych ward; inpatient unit; asylum; psychiatric facility')
 
 assert ('suicide' in srl.constructs['Suicide exposure']['tokens']) == True 
 assert ('suicide' in srl.constructs['Suicide exposure']['remove']) == True
@@ -996,6 +997,8 @@ else:
 
 # Remove unmatched tokens
 # ================================================================================
+import copy
+
 run_this = True
 if run_this: 			
 	feature_vectors_sw, matches_counter_d_sw, matches_per_doc_sw, matches_per_construct_sw  = lexicon.extract(docs_sw,
@@ -1005,11 +1008,11 @@ if run_this:
 
 
 
-if run_this:
 
-	srl = lemmatize_tokens(srl) # TODO: integrate this to class: self.lemmatize_tokens() adds tokens_lemmatized
 
-	# Extract on l1_docs, l2_docs, l3_docs
+
+	
+
 	feature_vectors, matches_counter_d, matches_per_doc, matches_per_construct  = lexicon.extract(train_df['text'].tolist(),
 																						srl.constructs,normalize = False, return_matches=True,
 																						add_lemmatized_lexicon=True, lemmatize_docs=False,
@@ -1018,6 +1021,8 @@ if run_this:
 
 	train_df_features = pd.concat([train_df, feature_vectors],axis=1)
 
+	
+	
 	all_matched_tokens = []
 	for c in matches_counter_d:
 		all_matched_tokens += matches_counter_d[c].keys()
@@ -1026,30 +1031,407 @@ if run_this:
 	for c in matches_counter_d_sw:
 		all_matched_tokens_sw += matches_counter_d_sw[c].keys()
 
-	original_vs_matched = {}
-	for c in srl.constructs.keys():
-		tokens = srl.constructs[c]['tokens'] 
-		matched_tokens = [n for n in tokens if n in all_matched_tokens]
-		matched_tokens_sw = [n for n in tokens if n in all_matched_tokens_sw]
-		matched_tokens_ctl_sw = [n for n in tokens if (n in all_matched_tokens or n in matched_tokens_sw)]
+	# original_vs_matched = {}
+	# for c in srl.constructs.keys():
+	# 	tokens = srl.constructs[c]['tokens'] 
+	# 	matched_tokens = [n for n in tokens if n in all_matched_tokens]
+	# 	matched_tokens_sw = [n for n in tokens if n in all_matched_tokens_sw]
+	# 	matched_tokens_ctl_sw = [n for n in tokens if (n in all_matched_tokens or n in matched_tokens_sw)]
+	# 	original_vs_matched[c] = [len(tokens), len(matched_tokens),len(matched_tokens_ctl_sw)] # original tokens, matched_tokens
+	# original_vs_matched = pd.DataFrame(original_vs_matched, index = ['Total', 'Matched CTL', 'Matched CTL and SW']).T
+	# original_vs_matched['%'] = (original_vs_matched['Matched CTL and SW'] / original_vs_matched['Total']).round(2)
+	# original_vs_matched = original_vs_matched.T[constructs_in_order].T
 
-		original_vs_matched[c] = [len(tokens), len(matched_tokens),len(matched_tokens_ctl_sw)] # original tokens, matched_tokens
+	
+
+	all_matched_tokens_ctl_sw = list(np.unique(all_matched_tokens+all_matched_tokens_sw))
+	len(all_matched_tokens_ctl_sw)
+
+	srl_matched = copy.deepcopy(srl)
+
+	from concept_tracker.utils import lemmatizer
+
+	# TODO re-do the count with all this. 
+	# TODO check whether token is within other token
+
+	add_and_remove_d = gen_add_remove_dict(constructs_in_order)
+	original_vs_matched = []
+	for construct in constructs_in_order:
+		tokens = srl.constructs[construct]['tokens']
+		# if it isn't in matched tokens, remove it
+		tokens_to_remove = [n for n in tokens if n.lower() not in all_matched_tokens_ctl_sw] # tokens that are in the unmatched list are all lower case
+		# now check if the lemmatized version was found, if it was, include the original token, because it is not in tokens and we don't want to validated all lemmatized forms
+		tokens_to_remove_lemmatized = lemmatizer.spacy_lemmatizer(tokens_to_remove)
+		tokens_to_remove_lemmatized = [' '.join(n).replace(' - ', '-').replace('-',' ').replace('  ', ' ') for n in tokens_to_remove_lemmatized]
+		
+		tokens_to_remove_final = tokens_to_remove.copy()
+		for token, token_lemmatized in zip(tokens_to_remove,tokens_to_remove_lemmatized):	
+
+			if token!= token_lemmatized and (token_lemmatized.lower() in all_matched_tokens_ctl_sw): 
+				print(token,  ' ------ ', token_lemmatized)
+				
+
+				# example: "stop existing" > stop exist which is matched. 
+				try: tokens_to_remove_final.remove(token)
+				except: 
+					print('original unlemmatized token was not in tokens_to_remove_final:', token, 'making sure lemmatized form is not removed:', token_lemmatized)
+					tokens_to_remove_final.remove(token_lemmatized)
+				
+		print('removing these tokens')	
+		print(construct, tokens_to_remove_final)
+		add_and_remove_d[construct]['remove'] = tokens_to_remove
+		print()
 
 
-	original_vs_matched = pd.DataFrame(original_vs_matched, index = ['Total', 'Matched CTL', 'Matched CTL and SW']).T
-	original_vs_matched['%'] = (original_vs_matched['Matched CTL and SW'] / original_vs_matched['Total']).round(2)
-	original_vs_matched = original_vs_matched.T[constructs_in_order].T
+		tokens_to_keep = len(tokens)-len(tokens_to_remove_final)
+		perc_of_original = tokens_to_keep/len(tokens)
+		original_vs_matched.append([construct, len(tokens), len(tokens_to_remove_final), tokens_to_keep, np.round(perc_of_original*100,1)])
+		
 
-	original_vs_matched['%'].mean()
-	original_vs_matched['%'].min()
-	original_vs_matched['%'].max()
+	original_vs_matched = pd.DataFrame(original_vs_matched, columns = ['Construct', 'Original', 'Unmatched in CTL and SW', 'Matched CTL and SW', '% of original'])
+
+	original_vs_matched = original_vs_matched.set_index('Construct')
+	means = original_vs_matched.mean()
+	mins = original_vs_matched.min()
+	maxs = original_vs_matched.max()
+
+	# Create a new row with the formatted string "mean [min; max]"
+	new_row = {col: f"{means[col]:.2f} [{mins[col]}; {maxs[col]}]" for col in original_vs_matched.columns}
+	new_row = pd.DataFrame(new_row, index = ['Mean [min-max]'])
+
+	# Append the new row to the DataFrame
+	original_vs_matched_df = pd.concat([original_vs_matched, new_row], axis=0)
+	
+	original_vs_matched_df.to_csv('./data/output/tables/srl_original_vs_matched_tokens.csv')
+
+	# construct = 'Active suicidal ideation & suicidal planning'
+	# matches_counter_d[construct].keys()
+	# token = 'gave my things away' # where lemma is found
+	# token in srl.constructs[construct]['tokens']
+	# 'attempt' in srl.constructs[construct]['tokens']
+	# 'stop exist' in srl.constructs[construct]['tokens_lemmatized']
+	# The problem is the lemma won't be validated. so we need to add tokens that lemmatized are matched. 
+	# TODO: wonder if punctuation and lower case affect things as well. 
+
+	# [n for n in all_matched_tokens_stl_sw if token.lower() in n]
+	# [n for n in docs_sw if token.lower() in n.lower()]
+	# [n for n in train_df['text'].values if token.lower() in n.lower()]
+
+
+	# # TODO: when I'm happy with results, then remove those tokens 
+	# # srl_matched.remove(construct, remove_tokens = tokens_to_remove_final, source ='Remove: these tokens were not found in CTL training data nor 10k r/SuicideWatch posts')
+
+	# assert ('13 reasons why' in srl.constructs['Suicide exposure']['tokens']) == True
+	# assert ('suicide grief'  in srl.constructs['Suicide exposure']['tokens']) == True
+	# assert ('13 reasons why' in srl_matched.constructs['Suicide exposure']['tokens']) == True
+	# assert ('suicide grief' not in srl_matched.constructs['Suicide exposure']['tokens']) == True
+	import json
+	with open('./data/input/lexicons/suicide_risk_lexicon_preprocessing/unmatched_tokens.json', 'w') as json_file:
+		json.dump(add_and_remove_d, json_file, indent=4)  # Using 4 spaces for indentation
+	
+	with open(f'./data/input/lexicons/suicide_risk_lexicon_preprocessing/unmatched_tokens_edited_{generate_timestamp()}.json', 'w') as json_file:
+		json.dump(add_and_remove_d, json_file, indent=4)  # Using 4 spaces for indentation
+
+		
+
+else:
+	srl_matched = copy.deepcopy(srl)
+
+	# manually removed some so they were kept in the lexicon. Careful with json formatting: you can sue jsonlint to find mistakes (trailing commas)
+	with open('./data/input/lexicons/suicide_risk_lexicon_preprocessing/unmatched_tokens_edited.json', 'r') as json_file:
+		add_and_remove_d =  json.load(json_file)
+
+	for construct in add_and_remove_d.keys():
+		if len(add_and_remove_d[construct]['remove'])>0:
+			source = 'DML removed by removing unmatched tokens in CTL and SW, but then manually kept some by erasing lines of the json file'
+			srl_matched.remove(construct, remove_tokens = add_and_remove_d[construct]['remove'], source = source)
+
+	# Test
+	# construct = 'Finances & work stress'
+	# 'colleagues' in srl_matched.constructs[construct]['remove']
+	# 'colleagues' not in srl_matched.constructs[construct]['tokens']
+	# source = list(srl_matched.constructs[construct]['tokens_metadata'].keys())[-2:]
+	
+	srl_matched = lemmatize_tokens(srl_matched) 
+	srl_matched.save('./data/input/lexicons/suicide_risk_lexicon_preprocessing/suicide_risk_lexicon_calibrated_matched_tokens_unvalidated')
+
+	
+	
+
 
 	# TODO: see if tokens being removed make sense
 	# TODO: create new SRL withou removed tokens. maybe just remove from
 
-	srl = lemmatize_tokens(srl) # TODO: integrate this to class: self.lemmatize_tokens() adds tokens_lemmatized
+	
 
 	
+# Rank features for validation 
+# ===================================================
+
+# Encode tokens as embeddings 
+
+run_this = False
+
+if run_this:
+	srl_matched = lexicon.load_lexicon('./data/input/lexicons/suicide_risk_lexicon_calibrated_matched_tokens_unvalidated_24-02-09T02-36-50.pickle')
+	import tensorboard
+	from sentence_transformers import SentenceTransformer, util 
+	embeddings_name = 'all-MiniLM-L6-v2'
+	# Encode the documents with their sentence embeddings 
+	# a list of pre-trained sentence transformers
+	# https://www.sbert.net/docs/pretrained_models.html
+	# https://huggingface.co/models?library=sentence-transformers
+	
+	# all-MiniLM-L6-v2 is optimized for semantic similarity of paraphrases
+	sentence_embedding_model = SentenceTransformer(embeddings_name)       # load embedding
+	
+	# TODO: Change max_seq_length to 500
+	# Note: sbert will only use fewer tokens as its meant for sentences, 
+	print(sentence_embedding_model .max_seq_length)
+
+	import dill 
+	lexicon_embeddings = dill.load(open('./data/input/lexicons/embeddings_lexicon-tokens_all-MiniLM-L6-v2.pickle', "rb"))	
+	len(lexicon_embeddings.keys())
+	total_tokens = []
+	for construct in constructs_in_order:
+		tokens = srl_matched.constructs[construct]['tokens']
+		print(construct, tokens)
+		total_tokens.extend(tokens)
+	print(len(total_tokens))
+	srl.attributes['remove_from_all_constructs'] = [0, '0'] # TODO replace with this: srl.set_attribute('remove_from_all_constructs', [0, '0', "I", "I'm"]) # srl.get_attribute('remove_from_all_constructs')
+	srl_matched.get_attribute('remove_from_all_constructs')
+	tokens_to_encode = [n for n in total_tokens if n not in lexicon_embeddings.keys()]
+	print(len(tokens_to_encode))
+	
+	lexicon_embeddings_new = sentence_embedding_model.encode(tokens_to_encode, convert_to_tensor=True,show_progress_bar=True)
+	
+	
+	list(lexicon_embeddings.items())[0][1]
+	type(lexicon_embeddings_new[0].numpy()) == type(list(lexicon_embeddings.items())[0][1])
+	lexicon_embeddings_new = [n.numpy() for n in lexicon_embeddings_new]
+	# a lot lighter
+
+	lexicon_embeddings.update(dict(zip(tokens_to_encode, lexicon_embeddings_new)))
+	dill.dump(lexicon_embeddings, open('./data/input/lexicons/embeddings_lexicon-tokens_all-MiniLM-L6-v2_new.pickle', "wb"))
+
+	
+	# TODO: make sure this was added before (I added it to the top) 
+	srl_matched.add('Hospitalization', section = 'examples', value = 'hospitalized; psych ward; inpatient unit; asylum; psychiatric facility')
+	srl_matched.constructs['Existential meaninglessness & purposelessness']['examples'] = '; '.join(srl_matched.constructs['Existential meaninglessness & purposelessness']['examples'] )
+
+	# Make sure examples are in list. 
+	for construct in constructs_in_order:
+		examples = srl_matched.constructs[construct]['examples']
+		examples = [n.strip() for n in examples.split(';')]
+		tokens = srl_matched.constructs[construct]['tokens']
+		tokens += examples
+		srl_matched.constructs[construct]['tokens'] = list(np.unique(tokens))
+
+	# compute similarities with average of example embeddings	
+	average_embedding_of_examples = {}
+	for construct in constructs_in_order:
+		examples = srl_matched.constructs[construct]['examples']
+		examples = [n.strip() for n in examples.split(';')]
+		examples_not_encoded = [n for n in examples if n not in lexicon_embeddings.keys()]
+		if len(examples_not_encoded) > 0:
+			examples_not_encoded_embeddings = sentence_embedding_model.encode(examples_not_encoded, convert_to_tensor=True,show_progress_bar=True)
+			examples_not_encoded_embeddings = [n.numpy() for n in examples_not_encoded_embeddings]
+			lexicon_embeddings.update(dict(zip(examples_not_encoded, examples_not_encoded_embeddings)))
+		example_embeddings = [lexicon_embeddings[n] for n in examples]
+		average_embedding_of_examples[construct] = np.mean(example_embeddings, axis = 0)
+
+	# For each constructs, rank the similarity between each token and the average embedding of the examples
+	from sklearn.metrics.pairwise import cosine_similarity
+
+	use_average_of_example = False #False, because empirically it's better the rank is related to just one word
+	closest_to_first = False # if False, do recursive similarity which works better. Humans go in order, so once theyve judged a token, it's best to show the most related to the prior one
+	for construct in constructs_in_order:
+
+		if use_average_of_example:
+			reference_embedding = average_embedding_of_examples.get(construct)
+		else:
+			# embedding of first example
+			examples = srl_matched.constructs[construct]['examples']
+			examples = [n.strip() for n in examples.split(';')]
+			example_1 = examples[0]
+			reference_embedding = lexicon_embeddings.get(example_1)
+
+
+		tokens = srl_matched.constructs[construct]['tokens']
+		tokens_embeddings = [lexicon_embeddings.get(n) for n in tokens]
+		tokens_embeddings = dict(zip(tokens, tokens_embeddings))
+		
+		
+		if closest_to_first:
+			
+			# compute cosine similarity
+			similarity_scores_matrix = cosine_similarity(reference_embedding.reshape(1,-1), np.array(list(tokens_embeddings.values())))
+
+			# Flatten the resulting matrix to a 1D array of scores
+			similarity_scores = similarity_scores_matrix.flatten()
+
+			# Rank tokens based on their cosine similarity
+			ranked_tokens = sorted(tokens_embeddings.keys(), key=lambda token: similarity_scores[list(tokens_embeddings.keys()).index(token)], reverse=True)
+
+			srl_matched.constructs[construct]['tokens_by_similarity'] = ranked_tokens
+
+		else:
+			# Find closest recursively
+			tokens_list =  tokens.copy()
+
+			examples = srl_matched.constructs[construct]['examples']
+			examples = [n.strip() for n in examples.split(';')]
+			example_1 = examples[0]
+			start_token = example_1
+			# Initialize the ordered list with the starting token
+			ordered_tokens = [start_token]
+			# Remove the starting token from the tokens list to avoid comparing it with itself
+			tokens_list.remove(start_token)
+			while tokens_list:
+				# Get the last token's embedding in the ordered list
+				last_token_embedding = tokens_embeddings[ordered_tokens[-1]].reshape(1, -1)
+				# Calculate cosine similarity with remaining tokens
+				similarities = {token: cosine_similarity(last_token_embedding, tokens_embeddings[token].reshape(1, -1))[0][0] for token in tokens_list}
+				# Find the most similar token
+				next_token = max(similarities, key=similarities.get)
+				# Add the most similar token to the ordered list
+				ordered_tokens.append(next_token)
+				# Remove this token from the tokens list
+				tokens_list.remove(next_token)			
+			srl_matched.constructs[construct]['tokens_by_similarity'] = ordered_tokens
+
+
+
+
+	
+	def to_pandas(self, add_annotation_columns=True,add_metadata_rows = True, order=None, tokens = 'tokens'):
+	# def to_pandas(self, add_annotation_columns=True, order=None, tokens = 'tokens'):
+		"""
+		TODO: still need to test
+		lexicon: dictionary with at least
+		{'construct 1': {'tokens': list of strings}
+		}
+		:return: Pandas DF
+		"""
+		if order:
+			warn_missing(self.constructs, order, output_format='pandas / csv')
+		lexicon_df = []
+		constructs = order.copy() if isinstance(order, list) else self.constructs.keys()
+		for construct in constructs:
+			df_i = pd.DataFrame(self.constructs[construct][tokens], columns=[construct])
+			if add_annotation_columns:
+				df_i[construct + "_include"] = [np.nan] * df_i.shape[0]
+				df_i[construct + "_add"] = [np.nan] * df_i.shape[0]
+			lexicon_df.append(df_i)
+
+		lexicon_df = pd.concat(lexicon_df, axis=1)
+
+		if add_metadata_rows:
+			metadata_df_all = []
+			if order:
+				constructs_in_order = order
+			else:
+				constructs_in_order = self.constructs.keys()
+			for construct in constructs_in_order:
+				# add definition, examples, prompt_name as rows below each construct's column
+				definition = self.constructs[construct]['definition']
+				definition_references = self.constructs[construct]['definition_references']
+				examples = self.constructs[construct]['examples']
+				prompt_name = self.constructs[construct]['prompt_name']
+				metadata_df = pd.DataFrame([prompt_name, definition, definition_references, examples], columns = [construct])
+				metadata_df[f'{construct}_include'] = ['']*len(metadata_df)
+				metadata_df[f'{construct}_add'] = ['']*len(metadata_df)
+				metadata_df_all.append(metadata_df)
+		
+		
+			metadata_df_all = pd.concat(metadata_df_all, axis = 1)
+			lexicon_df = pd.concat([metadata_df_all, lexicon_df], axis = 0, ignore_index=True)
+
+			metadata_indeces = ['Prompt name', 'Definition', 'Reference', 'Examples']
+			new_index = metadata_indeces + [n-len(metadata_indeces) for n in lexicon_df.index[len(metadata_indeces):].tolist()]
+			lexicon_df.index = new_index
+
+		return lexicon_df
+
+
+	pd.options.display.width = 0
+	srl_matched.constructs['Passive suicidal ideation']['tokens']
+	srl_matched.constructs['Passive suicidal ideation']['tokens_by_similarity']
+	srl_df = to_pandas(srl_matched, order = constructs_in_order, tokens = 'tokens_by_similarity')
+	
+	srl_df.to_csv(f'./data/input/lexicons/suicide_risk_lexicon_preprocessing/suicide_risk_lexicon_calibrated_matched_tokens_unvalidated_{generate_timestamp()}_annotation.csv')
+
+
+	# Different order for each annotator
+	
+	srl_constructs  = 0
+	from constructs_annotation_order import constructs_in_order, constructs_kb, constructs_dc,constructs_or 
+	
+	# # TEST: Make sure no constructs are missing from the ones in construct in order
+	# any_missing = constructs_in_order
+	# set(constructs_kb) ^ set(constructs_in_order)
+	# set(constructs_or) ^ set(constructs_in_order)
+	# set(constructs_dc) ^ set(constructs_in_order)
+	# [n for n in constructs_dc if n not in constructs_in_order]
+	# [n for n in constructs_or if n not in constructs_in_order]
+	# [n for n in constructs_kb if n not in constructs_in_order]
+
+
+	
+
+	
+	
+	for name, order in {'or':constructs_or, 'kb':constructs_kb, 'dc':constructs_dc}.items():
+		srl_df = to_pandas(srl_matched, order = order, tokens = 'tokens_by_similarity')
+		srl_df.to_csv(f'./data/input/lexicons/suicide_risk_lexicon_preprocessing/suicide_risk_lexicon_calibrated_matched_tokens_unvalidated_{generate_timestamp()}_annotation_{name}.csv')
+
+	
+	srl_matched_with_unmatched = copy.deepcopy(srl_matched)
+	# add tokens that were removed at the bottom so coders can see them.
+	for construct in constructs_in_order:
+		original_tokens = srl.constructs[construct]['tokens']
+		new_tokens = srl_matched.constructs[construct]['tokens_by_similarity']
+		original_tokens = [n for n in original_tokens if n not in new_tokens]
+		new_tokens = new_tokens + ['']*5+['OLD TOKENS: DO NOT CODE']+ original_tokens
+		srl_matched_with_unmatched.constructs[construct]['tokens_by_similarity'] = new_tokens
+
+	for name, order in {'or':constructs_or, 'kb':constructs_kb, 'dc':constructs_dc}.items():
+		srl_df = to_pandas(srl_matched_with_unmatched, order = order, tokens = 'tokens_by_similarity')
+		srl_df.to_csv(f'./data/input/lexicons/suicide_risk_lexicon_preprocessing/suicide_risk_lexicon_calibrated_matched_tokens_with_unmatched_unvalidated_{generate_timestamp()}_annotation_{name}.csv')
+
+	
+
+		
+
+
+
+
+	# prompt = generate_prompt(construct = 'Hospitalization', prompt_name = 'Pyschiatric hospitalization', examples ='hospitalized; inpatient unit; psych ward; psychiatric hospital')
+
+	
+	# from concept_tracker import api_keys
+	# os.environ["OPENAI_API_KEY"] = api_keys.open_ai  # string, you need your own key and to put at least $5 in the account
+	# os.environ["COHERE_API_KEY"] = api_keys.cohere_trial  # string, you can get for free by logging into cohere and going to sandbox
+	# api_request(prompt, model ='command-nightly')
+		
+
+	
+
+
+
+
+	
+	
+	# TODO move up to where I encoded this
+	for split in dfs.keys():
+		embeddings = dfs[split]['embeddings']
+		embeddings = pd.DataFrame(embeddings, columns = [f'{embeddings_name}_{str(n).zfill(4)}' for n in range(embeddings.shape[1])])
+		dfs[split][embeddings_name] = embeddings
+
+
+
+
+
 
 
 

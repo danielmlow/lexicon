@@ -37,12 +37,17 @@ def is_any_substring_in_string(substrings, main_string):
 # Inspect source types
 
 
+lexicon_path = './data/input/lexicons/suicide_risk_lexicon_preprocessing/suicide_risk_lexicon_calibrated_matched_tokens_unvalidated_24-02-09T02-36-50'
+
 import json
-with open('./../data/lexicons/suicide_risk_lexicon_gpt-4-1106-preview_dml_24-02-02T20-43-23_metadata.json', 'r') as file:
+with open(f'{lexicon_path}_metadata.json', 'r') as file:
     lexicon_constructs = json.load(file)
 
 
 len(lexicon_constructs.keys())
+
+
+from srl_constructs import constructs_in_order
 
 sources_all = []
 for construct in lexicon_constructs.keys():
@@ -56,12 +61,15 @@ for construct in lexicon_constructs.keys():
 			sources_all.append(source)
 
 sources_all = set([' '.join(n.split(' ')[:-1]) for n in sources_all])
+sources_all
 
 # TODO: move this to package
 
 gpt4_sources = ['gpt-4-1106-preview']
-word_score_sources = ['word score']
+ctl_word_score = ['CTL word score']
+reddit_word_score = ['word score Reddit']
 manual_sources = [
+	'Added:',
 	'manually added by DML',
 	'DML adding',
 	'DML added',
@@ -72,12 +80,12 @@ manual_sources = [
 
 ]
 
-source_types = ['gpt-4-1106-preview', 'Word score', 'Manual'] # 
+source_types = ['gpt-4-1106-preview', 'Reddit word score', 'CTL word score', 'Manual'] # 
 
 counts = {}
 counts_final = {}
 
-for construct in lexicon_constructs.keys():
+for construct in constructs_in_order:
 
 	# Add source tokens to a source type
 	# counts[construct] = dict(zip(source_types, [[]]*len(source_types)))
@@ -91,7 +99,6 @@ for construct in lexicon_constructs.keys():
 		# source = list(sources)[4]
 
 		# for specific addition
-		len(source_tokens_i)
 		source_tokens_i = lexicon_constructs[construct]['tokens_metadata'][source]['tokens']
 		source_action = lexicon_constructs[construct]['tokens_metadata'][source]['add_or_remove']
 		if source_action == 'add':
@@ -99,8 +106,10 @@ for construct in lexicon_constructs.keys():
 			if is_any_substring_in_string(gpt4_sources, source):
 				counts[construct]['gpt-4-1106-preview'].extend(source_tokens_i)
 			# Word scores
-			elif is_any_substring_in_string(word_score_sources, source):
-				counts[construct]['Word score'].extend(source_tokens_i)
+			elif is_any_substring_in_string(reddit_word_score, source):
+				counts[construct]['Reddit word score'].extend(source_tokens_i)
+			elif is_any_substring_in_string(ctl_word_score, source):
+				counts[construct]['CTL word score'].extend(source_tokens_i)
 			# Manual
 			elif is_any_substring_in_string(manual_sources, source):
 				counts[construct]['Manual'].extend(source_tokens_i)
@@ -112,7 +121,7 @@ for construct in lexicon_constructs.keys():
 
 
 
-for construct in lexicon_constructs.keys():
+for construct in constructs_in_order:
 	# print(construct)
 	final_tokens = lexicon_constructs[construct]['tokens']
 	counts_final[construct] = {source_type: [] for source_type in source_types}
@@ -123,22 +132,29 @@ for construct in lexicon_constructs.keys():
 		final_intersection = len(set(final_tokens).intersection(set(source_tokens)))
 		counts_final[construct][source_type] = final_intersection
 	
-	counts_final[construct]['Manually added'] = len(final_tokens)-(counts_final[construct]['gpt-4-1106-preview']+counts_final[construct]['Word score'])
+	# counts_final[construct]['Manually added'] = len(final_tokens)-(counts_final[construct]['gpt-4-1106-preview']+counts_final[construct]['Reddit word score']+counts_final[construct]['Reddit word score'])
 	counts_final[construct]['Final tokens'] = len(final_tokens)
 	
 	
 
 counts_final = pd.DataFrame(counts_final)		
 counts_final  = counts_final.T
-counts_final = counts_final.drop('Manual', axis=1) # was not able to fully capture it with the above rule, so it's the  final tokens minus (gpt4+word_score)
+# counts_final = counts_final.drop('Manual', axis=1) # was not able to fully capture it with the above rule, so it's the  final tokens minus (gpt4+word_score)
 # Add percentage of Final tokens next to each column
 
 for col in counts_final.columns[:-1]:
 	counts_final[col] = counts_final[col] / counts_final['Final tokens']
 	counts_final[col] = counts_final[col].round(2)
 
+
+counts_final.replace(0, np.nan).median()
+counts_final.replace(0, np.nan).min()
+counts_final.replace(0, np.nan).max()
+
+
 # add mean and std as the last row
-counts_final.loc['Mean [min-max]'] =  [f"{m:.2f} [{mininum:.2f}-{maximum:.2f}]" for m,mininum, maximum in zip(counts_final.mean(), counts_final.min(), counts_final.max())]
+counts_final.loc['Median [min-max]'] =  [f"{m:.2f} [{mininum:.2f}-{maximum:.2f}]" for m,mininum, maximum in zip(counts_final.replace(0, np.nan).median(), counts_final.replace(0, np.nan).min(), counts_final.replace(0, np.nan).max())]
+counts_final.loc['Median [min-max]', 'Final tokens'] = counts_final.loc['Median [min-max]', 'Final tokens'] .replace('.00', '')
 # counts_final.loc['Mean (SD)'] = [f"{m:.2f} ({s:.2f})" for m,s in zip(counts_final.mean(), counts_final.std())] 
 
 
@@ -151,13 +167,13 @@ for c in lexicon_constructs.keys():
 counts_final['Seed examples'] = counts_final.index.map(seed_examples)
 
 # rename columns
-counts_final.rename(columns={'gpt-4-1106-preview': 'GPT-4 Turbo'},inplace=True)
+counts_final.rename(columns={'gpt-4-1106-preview': 'GPT-4 Turbo', 'Manual': 'Manual curation'},inplace=True)
 #Re order columns
-counts_final = counts_final[['Seed examples', 'GPT-4 Turbo', 'Word score', 'Manually added', 'Final tokens']]
+counts_final = counts_final[['Seed examples','Final tokens', 'GPT-4 Turbo', 'Reddit word score', 'CTL word score', 'Manual curation']]
 
 
-counts_final.to_csv('./../data/output/lexicon_paper/tables/lexicon_source_descriptives.csv')
-counts_final
+counts_final.to_csv('./data/output/tables/lexicon_source_descriptives.csv')
+
 
 
 
@@ -182,9 +198,15 @@ with open('./data/input/ctl/ctl_dfs_features.pkl', 'rb') as f:
 
 train_df = dfs['train']['df_text'][['text', 'y']]
 
-srl = load_lexicon('./../data/lexicons/suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52.pickle')
+srl = load_lexicon(lexicon_path+'.pickle')
 
-srl = lemmatize_tokens(srl) # TODO: integrate this to class: self.lemmatize_tokens() adds tokens_lemmatized
+srl.add('Hospitalization', section = 'examples', value = 'hospitalized; psych ward; inpatient unit; asylum; psychiatric facility')
+
+
+srl.constructs['Existential meaninglessness & purposelessness']['examples']
+srl.add('Existential meaninglessness & purposelessness', section = 'examples', value = '; '.join(srl.constructs['Existential meaninglessness & purposelessness']['examples']))
+
+# srl = lemmatize_tokens(srl) # TODO: integrate this to class: self.lemmatize_tokens() adds tokens_lemmatized
 
 # Extract on l1_docs, l2_docs, l3_docs
 feature_vectors, matches_counter_d, matches_per_doc, matches_per_construct  = lexicon.extract(train_df['text'].tolist(),
@@ -221,8 +243,10 @@ assert ('suicide ' in srl.constructs['Suicide exposure']['tokens']) == False
 'suicide' in srl.constructs['Suicide exposure']['remove']
 'suicide ' in srl.constructs['Suicide exposure']['tokens_lemmatized']
 
+
 lexicon_descriptives = pd.read_csv('./data/output/tables/lexicon_source_descriptives.csv', index_col = 0)
 lexicon_descriptives.index.name = 'Construct'
+
 
 
 top_matches_per_construct_d = dict(zip(top_matches_per_construct_df.index.values, top_matches_per_construct_df['Top matches'].values))
