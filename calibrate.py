@@ -9,6 +9,7 @@ from concept_tracker.utils import lemmatizer
 from srl_constructs import constructs_in_order, categories, colors, colors_list # local
 from concept_tracker.lexicon import lemmatize_tokens
 from srl_constructs import constructs_in_order # local
+pd.set_option("display.max_columns", None)
 
 def gen_add_remove_dict(constructs):
 
@@ -111,6 +112,8 @@ srl.add('Hospitalization', section = 'tokens', value = ['hospital', 'hospitalize
 														 'psychiatric ward', 'psychiatric hospital', 'in and out of the clinic','in and out of the hospital', 'inpatient', 'in patient', 'clinic', 'urgent care'],
 		source = ['DML adding'])
 srl.add('Hospitalization', section = 'examples', value = 'hospitalized; psych ward; inpatient unit; asylum; psychiatric facility')
+srl.constructs['Existential meaninglessness & purposelessness']['examples'] = '; '.join(srl.constructs['Existential meaninglessness & purposelessness']['examples'] )
+
 
 assert ('suicide' in srl.constructs['Suicide exposure']['tokens']) == True 
 assert ('suicide' in srl.constructs['Suicide exposure']['remove']) == True
@@ -969,7 +972,7 @@ else:
 	'Trauma & PTSD': {'add': [], 'remove': []}
 	}
 
-	add_to_exact_match_tokens = ['sibling', 'the bar', 'shots of', 'laced', "I'm a cow", "price"]
+	add_to_exact_match_tokens = ['sibling', 'siblings', 'the bar', 'shots of', 'laced', "I'm a cow", "price"]
 	srl.exact_match_tokens = srl.exact_match_tokens + add_to_exact_match_tokens
 	
 	# TODO: to avoid overwriting add and remove. We need to add metadata to the source name automatically, the author, the action. etc. 
@@ -992,14 +995,110 @@ else:
 	assert ('lunatic' not in srl.constructs['Psychosis & schizophrenia']['tokens']) == True
 
 
+	
+
+
+
+# Look through docs for false negatives
+# ===================================================
+run_this = False
+
+if run_this:
+	docs_subset = train_df['text'].sample(n=100).values
+	srl = lemmatize_tokens(srl) # TODO: integrate this to class: self.lemmatize_tokens() adds tokens_lemmatized
+	feature_vectors, matches_counter_d, matches_per_doc, matches_per_construct  = lexicon.extract(docs_subset,
+																						srl.constructs,normalize = False, return_matches=True,
+																						add_lemmatized_lexicon=True, lemmatize_docs=False,
+																						exact_match_n = srl.exact_match_n,exact_match_tokens = srl.exact_match_tokens)
+	for i in range(len(docs_subset)):
+		print(docs_subset.values[i])
+		constructs_alphabetical = constructs_in_order.copy()
+		constructs_alphabetical.sort()
+		display(pd.DataFrame(matches_per_doc[i])[constructs_alphabetical])
+		print()
+
+else:
+	add_and_remove_d = {
+	'Active suicidal ideation & suicidal planning': {'add': ['OD',"I'll be dead","want to jump", "over dose", "run in front of traffic", "shooting myself", "make it look like a accident", "will be dead"], 'remove': []},
+	'Aggression & irritability': {'add': [], 'remove': []},
+	'Agitation': {'add': [], 'remove': []},
+	'Alcohol use': {'add': [], 'remove': []},
+	'Anhedonia & uninterested': {'add': [], 'remove': []},
+	'Anxiety': {'add': [], 'remove': []},
+	'Barriers to treatment': {'add': [], 'remove': []},
+	'Bipolar Disorder': {'add': ["haven't slept"], 'remove': []},
+	'Borderline Personality Disorder': {'add': [], 'remove': []},
+	'Bullying': {'add': [], 'remove': []},
+	'Burdensomeness': {'add': ["I'm annoying", "be better without me"], 'remove': []},
+	'Defeat & feeling like a failure': {'add': ["nothing works","don't know what to do"], 'remove': []},
+	'Depressed mood': {'add': ['cried'], 'remove': []},
+	'Direct self-injury': {'add': ["slice my wrist"], 'remove': []},
+	'Discrimination': {'add': ['racist'], 'remove': []},
+	'Eating disorders': {'add': ["throwing up"], 'remove': []},
+	'Emotional pain & psychache': {'add': [], 'remove': []},
+	'Emptiness': {'add': [], 'remove': []},
+	'Entrapment & desire to escape': {'add': ['running out of options'], 'remove': []},
+	'Existential meaninglessness & purposelessness': {'add': ["don't care about life", "what's the point of life"], 'remove': []},
+	'Fatigue & tired': {'add': [], 'remove': []},
+	'Finances & work stress': {'add': [], 'remove': []},
+	'Gender & sexual identity': {'add': [], 'remove': []},
+	'Grief & bereavement': {'add': ['friends died'], 'remove': []},
+	'Guilt': {'add': [], 'remove': []},
+	'Hopelessness': {'add': [], 'remove': []},
+	'Hospitalization': {'add': [], 'remove': []},
+	'Impulsivity': {'add': [], 'remove': []},
+	'Incarceration': {'add': [], 'remove': []},
+	'Lethal means for suicide': {'add': ['OD',"over dose","slice my wrist", "run in front of traffic", "shooting myself", "muscle relaxer", "weapon", "anti freeze", "antifreeze", "hanging"], 'remove': []},
+	'Loneliness & isolation': {'add': ["everybody would forget about me", "never there for me", "people are not caring", "no partner"], 'remove': []},
+	'Mental health treatment': {'add': ["need help", 'medicine', 'therapist', 'dosage', 'prescribe', 'behavioral health', 'facility'], 'remove': []},
+	'Other substance use': {'add': ['drugs', 'dosage'], 'remove': []},
+	'Other suicidal language': {'add': ["I'll be dead", "can't live like this", "needs to be dead", "kill me", "dying", 'breaking point', "tired of life", "ready to die", "will be dead", "it's my time to go", "won't matter if I die", "nothing to lose"], 'remove': []},
+	'Panic': {'add': ["dissociation", "dissociate", "need help", "meltdown"], 'remove': []},
+	'Passive suicidal ideation': {'add': ["permanent rest", "want it all to end", "tired of life", "don't care about life"], 'remove': []},
+	'Perfectionism': {'add': [], 'remove': []},
+	'Physical abuse & violence': {'add': ["hits me", "stabbing me"], 'remove': []},
+	'Physical health issues & disability': {'add': ["throwing up"], 'remove': []},
+	'Poverty & homelessness': {'add': [], 'remove': []},
+	'Psychosis & schizophrenia': {'add': ['spying on me', 'losing my mind'], 'remove': []},
+	'Relationship issues': {'add': ["had left me"], 'remove': []},
+	'Relationships & kinship': {'add': ['sibling'], 'remove': []},
+	'Rumination': {'add': ['want my brain to shut off'], 'remove': []},
+	'Sexual abuse & harassment': {'add': [], 'remove': []},
+	'Shame, self-disgust, & worthlessness': {'add': ['embarrass'], 'remove': []},
+	'Sleep issues': {'add': [], 'remove': []},
+	'Social withdrawal': {'add': ["don't trust anyone"], 'remove': []},
+	'Suicide exposure': {'add': [], 'remove': []},
+	'Trauma & PTSD': {'add': [], 'remove': []}}
+
+	exact_match_tokens = ['hanging']
+	srl.exact_match_tokens+=exact_match_tokens
+	srl.exact_match_tokens = list(np.unique(srl.exact_match_tokens))
+
+	'''
+	[print(n) for n in ['OD',"over dose","slice my wrist", "run in front of traffic", "shooting myself", "muscle relaxer", "weapon", "anti freeze", "antifreeze", "hanging"]]
+
+	'''
+
+
+	for construct in add_and_remove_d.keys():
+		if len(add_and_remove_d[construct]['add'])>0:
+			source = 'Added: Looked through docs for false negatives'
+			srl.add(construct, section = 'tokens', value = add_and_remove_d[construct]['add'], source = source)
+		if len(add_and_remove_d[construct]['remove'])>0:
+			source = 'Added: Looked through docs for false negatives'
+			srl.remove(construct, remove_tokens = add_and_remove_d[construct]['remove'], source = source)
+
+
+	from concept_tracker.lexicon import lemmatize_tokens
 	srl = lemmatize_tokens(srl) 
 	srl.save('./data/input/lexicons/suicide_risk_lexicon_preprocessing/suicide_risk_lexicon_calibrated_unmatched_tokens_unvalidated')
+
 
 # Remove unmatched tokens
 # ================================================================================
 import copy
 
-run_this = True
+run_this = False
 if run_this: 			
 	feature_vectors_sw, matches_counter_d_sw, matches_per_doc_sw, matches_per_construct_sw  = lexicon.extract(docs_sw,
 																					srl.constructs,normalize = False, return_matches=True,
@@ -1135,12 +1234,14 @@ if run_this:
 		
 
 else:
-	srl_matched = copy.deepcopy(srl)
-
+	
+	import copy
+	# Tokens that were unmatched. 
 	# manually removed some so they were kept in the lexicon. Careful with json formatting: you can sue jsonlint to find mistakes (trailing commas)
-	with open('./data/input/lexicons/suicide_risk_lexicon_preprocessing/unmatched_tokens_edited.json', 'r') as json_file:
+	with open('./data/input/lexicons/suicide_risk_lexicon_preprocessing/unmatched_tokens_24-02-15T23-25-11_edited.json', 'r') as json_file:
 		add_and_remove_d =  json.load(json_file)
 
+	srl_matched = copy.deepcopy(srl)
 	for construct in add_and_remove_d.keys():
 		if len(add_and_remove_d[construct]['remove'])>0:
 			source = 'DML removed by removing unmatched tokens in CTL and SW, but then manually kept some by erasing lines of the json file'
@@ -1164,6 +1265,7 @@ else:
 
 	
 
+
 	
 # Rank features for validation 
 # ===================================================
@@ -1173,7 +1275,7 @@ else:
 run_this = False
 
 if run_this:
-	srl_matched = lexicon.load_lexicon('./data/input/lexicons/suicide_risk_lexicon_calibrated_matched_tokens_unvalidated_24-02-09T02-36-50.pickle')
+	srl_matched = lexicon.load_lexicon('./data/input/lexicons/suicide_risk_lexicon_preprocessing/suicide_risk_lexicon_calibrated_matched_tokens_unvalidated_24-02-15T22-12-18.pickle')
 	import tensorboard
 	from sentence_transformers import SentenceTransformer, util 
 	embeddings_name = 'all-MiniLM-L6-v2'
@@ -1216,7 +1318,7 @@ if run_this:
 
 	
 	# TODO: make sure this was added before (I added it to the top) 
-	srl_matched.add('Hospitalization', section = 'examples', value = 'hospitalized; psych ward; inpatient unit; asylum; psychiatric facility')
+	
 	srl_matched.constructs['Existential meaninglessness & purposelessness']['examples'] = '; '.join(srl_matched.constructs['Existential meaninglessness & purposelessness']['examples'] )
 
 	# Make sure examples are in list. 
@@ -1404,29 +1506,6 @@ if run_this:
 		
 
 
-
-
-	# prompt = generate_prompt(construct = 'Hospitalization', prompt_name = 'Pyschiatric hospitalization', examples ='hospitalized; inpatient unit; psych ward; psychiatric hospital')
-
-	
-	# from concept_tracker import api_keys
-	# os.environ["OPENAI_API_KEY"] = api_keys.open_ai  # string, you need your own key and to put at least $5 in the account
-	# os.environ["COHERE_API_KEY"] = api_keys.cohere_trial  # string, you can get for free by logging into cohere and going to sandbox
-	# api_request(prompt, model ='command-nightly')
-		
-
-	
-
-
-
-
-	
-	
-	# TODO move up to where I encoded this
-	for split in dfs.keys():
-		embeddings = dfs[split]['embeddings']
-		embeddings = pd.DataFrame(embeddings, columns = [f'{embeddings_name}_{str(n).zfill(4)}' for n in range(embeddings.shape[1])])
-		dfs[split][embeddings_name] = embeddings
 
 
 

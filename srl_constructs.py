@@ -61,12 +61,11 @@ constructs_in_order = [
 categories = {
     'Suicidal constructs':[
         'Passive suicidal ideation',
-        'Active suicidal ideation & suicidal planning',
+        'Active suicidal ideation & suicidal planning',        
         'Lethal means for suicide',
         'Direct self-injury',
         'Suicide exposure',
         'Other suicidal language',
-        'Entrapment & desire to escape',
 		'Hospitalization',
     ],
     'Negative perception of self':[
@@ -94,6 +93,7 @@ categories = {
         'Agitation',
         'Rumination',
         'Perfectionism',
+        'Entrapment & desire to escape',
     ],
     "Interpersonal":[
         'Loneliness & isolation',
@@ -130,26 +130,49 @@ categories = {
 }
 
 
-# colors = dict(zip(categories.keys(), ['']*len(categories.keys())))
-
-colors_barplot = {'Suicidal constructs': 'orangered',
- 'Negative perception of self': 'deepskyblue',#'lightblue',
- 'Depressive symptoms': 'dodgerblue',
- 'Anxious symptoms': 'springgreen', #'palegreen',
- 'Interpersonal': 'mediumslateblue',
- 'Externalizing': 'purple',
- 'Other disorders': 'violet',
- 'Social and other determinants': 'crimson'}
 
 
-colors = {'Suicidal constructs': 'orangered',
- 'Negative perception of self': 'lightblue',
- 'Depressive symptoms': 'dodgerblue',
- 'Anxious symptoms': 'palegreen',
- 'Interpersonal': 'mediumslateblue',
- 'Externalizing': 'purple',
- 'Other disorders': 'violet',
- 'Social and other determinants': 'crimson'}
+# colorblind friendly https://davidmathlogic.com/colorblind/#%23648FFF-%23785EF0-%23DC267F-%23FE6100-%23FFB000
+colors_severity = {
+			
+			1: '#FFB000',
+			2: '#FE6100',
+			3: '#DC267F',
+			# 1: '#FFBB78',
+			# 2: '#FF7F0E',
+			# 3: '#D62728' 
+		}
+
+
+
+
+severity = {
+			
+			1: 'Non-suicidal',
+			2: 'Suicidal',
+			3: 'Imminent risk',
+			
+		}
+
+
+colors_severity_names = dict(zip(severity.values(), colors_severity.values()))
+
+# https://davidmathlogic.com/colorblind/#%23AB98FF-%23E69F00-%2377CEFF-%23009E73-%23F0E442-%230072B2-%23D55E00-%23CC79A7
+wong =  ['#AB98FF', #changed to lilac
+ '#0072B2', # lightorange
+ '#77CEFF', #changed to light blue
+ '#BCFFCF', # changed turqoise
+ '#F0E442', # mustard
+ '#E69F00', # darkblue
+ '#D55E00', # darkorange
+ '#CC79A7'] # pink
+
+
+
+
+colors = dict(zip(categories.keys(), wong))
+colors_barplot = colors.copy()
+
 
 
 colors_list = []

@@ -114,7 +114,12 @@ TODO: link to google slides
 `barplot_srl_matches.py` 
 
 ### Figure 5 (Inter-rater reliability)
-TODO add:
+TODO add: 
+
+### Figure 6 (Inter-rater reliability)
+suicide_risk_assessment_results.ipynb
+
+
 
 
 ## Tables 
@@ -127,8 +132,9 @@ TODO add:
 ### Table 3 (machine learning models)
 - `ctl_roberta_text.ipynb`
 - `suicide_risk_assessment.ipynb`
+- `suicide_risk_assessment_results.ipynb` formated table
 
 ### Table 4 (feature importance )
-- `suicide_risk_assessment.ipynb`
+- `suicide_risk_assessment_results.ipynb`
 
 
