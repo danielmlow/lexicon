@@ -74,7 +74,7 @@ All final figures in tables are available in `./../data/output/lexicon_paper/`
 2. Create preliminary lexicon with Generative AI `create_lexicon.py`
 3. Add word scores: `./../tutorials/word_scores_scattertext_ctl.ipynb`
 4. Add and remove tokens from prior lexicons, thesauri: `create_lexicon.py`
-
+5. Consolidate ratings from clinicians and output final validated lexicon: `clinician_annotations.py`
 
 TODO How it should look:
 1. Choose constructs and seed examples: `./../data/lexicons/suicide_risk_preprocessing/suicide_risk_constructs_and_definitions.csv`
@@ -116,8 +116,8 @@ TODO: link to google slides
 ### Figure 5 (Inter-rater reliability)
 TODO add: 
 
-### Figure 6 (Inter-rater reliability)
-suicide_risk_assessment_results.ipynb
+### Figure 6 (Boxplots prediction vs. true)
+`suicide_risk_assessment_results.ipynb`
 
 
 
@@ -131,8 +131,13 @@ suicide_risk_assessment_results.ipynb
 
 ### Table 3 (machine learning models)
 - `ctl_roberta_text.ipynb`
+	```conda create -y -n finetuning python=3.10 pandas numpy scikit-learn seaborn matplotlib notebook torch==2.0.1 datasets==2.14.3 transformers==4.28.1 accelerate==0.15.0 optuna==3.2.0 evaluate```
+	Run on MIT OpenMind cluster
+
 - `suicide_risk_assessment.ipynb`
 - `suicide_risk_assessment_results.ipynb` formated table
+
+
 
 ### Table 4 (feature importance )
 - `suicide_risk_assessment_results.ipynb`
