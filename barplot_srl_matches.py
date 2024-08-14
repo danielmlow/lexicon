@@ -13,7 +13,16 @@ from srl_constructs import constructs_in_order, categories, colors, colors_list,
 # load lexicon
 # ================================================================================================
 
-srl = load_lexicon(f'./data/input/lexicons/suicide_risk_lexicon_calibrated_unmatched_tokens_unvalidated_24-02-15T21-55-05.pickle')
+srl = load_lexicon(f'./data/input/lexicons/suicide_risk_lexicon_validated_24-03-06T00-37-15.pickle')
+
+# for c in list(srl.constructs.keys()):
+# 	if srl.constructs[c]["remove"] ==None:
+# 		srl.constructs[c]["remove"] = []
+
+# srl = lemmatize_tokens(srl) # TODO: integrate this to class: self.lemmatize_tokens() adds tokens_lemmatized
+
+# srl.save('./data/input/lexicons/suicide_risk_lexicon_validated_24-03-06T00-37-15_B')
+
 
 # load training set
 with open('./data/input/ctl/ctl_dfs_features.pkl', 'rb') as f:
@@ -27,6 +36,8 @@ docs = train_df['text'].tolist()
 # srl = lexicon.lemmatize_tokens(srl) # TODO: integrate this to class: self.lemmatize_tokens() adds tokens_lemmatized
 
 # Extract on l1_docs, l2_docs, l3_docs
+
+
 feature_vectors, matches_counter_d, matches_per_doc, matches_per_construct  = lexicon.extract(train_df['text'].tolist(),
 																					srl.constructs,normalize = False, return_matches=True,
 																					add_lemmatized_lexicon=True, lemmatize_docs=False,
@@ -61,7 +72,7 @@ if proportion:
 else:
 	counts = train_df_features.groupby('y').sum()
 	
-counts.to_csv(f'./data/output/tables/srl_matches_count_proportion-{proportion}.csv', index = False)
+counts.to_csv(f'./data/output/tables/srl_matches_count_proportion-{proportion}_validated.csv', index = False)
 counts = counts.reset_index()
 counts['Severity'] = counts['y'].map(severity)
 
@@ -102,7 +113,7 @@ for tick_label, color in zip(plt.gca().get_xticklabels(), colors_list):
     tick_label.set_color(color)
 
 plt.tight_layout()
-plt.savefig(f'./data/output/figures/distributions_srl_constructs_ctl_by_severity_proportion-{proportion}.png', bbox_inches='tight', dpi=300)
+plt.savefig(f'./data/output/figures/distributions_srl_constructs_ctl_by_severity_proportion-{proportion}_validated.png', bbox_inches='tight', dpi=300)
 
 
 output_dir = './data/output/figures/'
@@ -111,7 +122,7 @@ output_dir = './data/output/figures/'
 from PIL import Image
 
 # Open the larger image
-larger_image_path = output_dir+f'distributions_srl_constructs_ctl_by_severity_proportion-{proportion}.png'  # Update this path
+larger_image_path = output_dir+f'distributions_srl_constructs_ctl_by_severity_proportion-{proportion}_validated.png'  # Update this path
 larger_image = Image.open(larger_image_path)
 
 # Open the smaller image
@@ -134,7 +145,7 @@ larger_image.paste(smaller_image, (250, 50))
 
 # Save or display the combined image
 
-combined_image_path = output_dir+f'distributions_srl_constructs_ctl_by_severity_proportion-{proportion}_combined.png'  # Update this path
+combined_image_path = output_dir+f'distributions_srl_constructs_ctl_by_severity_proportion-{proportion}_combined_validated.png'  # Update this path
 larger_image.save(combined_image_path)
 
 # Or display the combined image directly

@@ -7,10 +7,39 @@ TODO: move all this to a different repo and import lexicon package
 
 # Data
 
+
+## Crisis Text Line data
+Crisis Text Line data is private and sensitive and was obtained de-identified through a collaboration and DUA with Crisis Text Line. If you obtain permission from Crisis Text Line, we are willing to share conversation IDs so the same conversations can be analyzed.
+
+Final datasets (private):
+
+`./data/input/ctl/`
+- train `train10_train_30perc_text_y_balanced_regression.csv`
+- val `train10_val_15perc_text_y_regression.csv`
+- test `train10_test_15perc_text_y_regression.csv`
+
+Extracted features:
+- `./data/input/ctl/ctl_dfs_features_{task}.pkl` where 
+
+## Suicide Risk Lexicon
+
+Lexicon saved in `construct-tracker` package
+
+```python
+srl = lexicon.load_lexicon(name = 'srl_v1-0')
+srl_prototypes = lexicon.load_lexicon(name = 'srl_prototypes_v1-0')
+```
+
+Unvalidated lexicon:
+- `data/input/lexicons/suicide_risk_lexicon_calibrated_unmatched_tokens_unvalidated_24-02-15T21-55-05.pickle`
+
+
+## Data structure
+
+```
 run `$tree -L 2`, for example:
 
 `tree ./data/input -L 2`
-
 ```
 
 input
@@ -23,11 +52,6 @@ input
 │   │	├── preprocessing
 │   │	│	├── definitions and examples csv
 │   │	│	├── gpt-4 + word score first_pass_annotation csv
-│   │	├── suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52.pickle # final one
-│   │	├── suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52.json
-│   │	├── suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52_metadata.json
-│   │	├── suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52.csv
-│   │	├── suicide_risk_lexicon_gpt-4-1106-preview_dml_24-01-31T21-06-52_annotation.csv
 ├── features
 │   ├── suicide_risk_lexicon
 │   ├── liwc-22
@@ -41,68 +65,39 @@ output
 
 
 
-
-
-## Suicide Risk Lexicon
-TODO: add files and paths
-- Final lexicon v0.1 `./../data/lexicons/suicide_risk_lexicon/`
-- Expert judgements: 
-
-## Crisis Text Line data
-Crisis Text Line data is private and sensitive and was obtained de-identified through a collaboration and DUA with Crisis Text Line. If you obtain permission from Crisis Text Line, we are willing to share conversation IDs so the same conversations can be analyzed.
-
-All final figures in tables are available in `./../data/output/lexicon_paper/`
-
 # Code for reproducing preprocessing, figures, and tables 
+
+All final figures in tables are available in `./data/output/figures/` and `./data/output/tables/`
 
 ## Preprocessing
 
-
 ### Creating dataset
-- Pulling data from CTL
-- Building datasets
-
-`train_test_split_ids.ipynb` in this repo. Takes downloaded data and creates datasets in the "risk assessment small" section 
-
-- cleaning
-
+- `build_dataset.ipynb` obtain data from CTL servers (private)
+- `build_post_session_survey_df.ipynb`
+- `train_test_split_ids.ipynb` in this repo. Takes downloaded data and creates datasets in the "risk assessment small" section 
+- `descriptive_statistics.ipynb` Some initial quick descriptive stats
+- Right before running models, there is a balancing done on the training set: `suicide_risk_assessment.ipynb`
 
 ### Creating lexicon
-- General tutorial: `./../tutorials/create_lexicon.ipynb`
+- General updated tutorial: see concept-tracker package `tutorials/create_lexicon.ipynb` [![Open in Google Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/danielmlow/construct-tracker/blob/main/tutorials/construct_tracker.ipynb)
 
+How it was done in this study:
 1. Choose constructs and seed examples: `./../data/lexicons/suicide_risk_preprocessing/suicide_risk_constructs_and_definitions.csv`
 2. Create preliminary lexicon with Generative AI `create_lexicon.py`
-3. Add word scores: `./../tutorials/word_scores_scattertext_ctl.ipynb`
+3. Automatically obtain word scores: `word_scores_scattertext_ctl.ipynb`
 4. Add and remove tokens from prior lexicons, thesauri: `create_lexicon.py`
-5. Consolidate ratings from clinicians and output final validated lexicon: `clinician_annotations.py`
-
-TODO How it should look:
-1. Choose constructs and seed examples: `./../data/lexicons/suicide_risk_preprocessing/suicide_risk_constructs_and_definitions.csv`
-
-All of this would be in the same script and I'd save and load csv's throughout
-2. Create preliminary lexicon with Generative AI `create_lexicon.py`
-3. Add and remove tokens: `add_tokens.py` TODO create
-3.1. Automatically obtain word scores: `./../tutorials/word_scores_scattertext_ctl.ipynb` # modify to be automatically add to certain construct after inspection
-3.2. Automatically add synonyms from wordnet 
-3.3. Manually obtain questionnaire items and add (perhaps loading from csv, any col with `<construct_name>_add`) will be added
-3.4. Save as csv with `<construct>_include` and `<construct>_add` columns.
-3.5. Manually remove irrelevant tokens, edit tokens, and any other tokens from prior lexicons: `suicide_risk_lexicon_annotate_24-01-15T19-08-09_dml.csv` 
-4. Load manual annotation and updated lexicon `add_and_remove.py` 
-5. extract on training set and calibrate 
-6. Save final lexicon
+5. Consolidate ratings from clinicians and output final validated lexicon including inter-rater agreement: `clinician_annotations.py`
 
 ### Feature extraction
-TODO: right now it's in - `suicide_risk_assessment.ipynb` but should be its own script
-This could include a calibration step if someone is using their own dataset.
+
+- Suicide Risk Lexicon, LIWC: `suicide_risk_assessment.ipynb` 
+- Construct-text similarity `ctl_cts.ipynb`
 
 
-
-
-## Figures 
+## Results: figures 
 
 ### Figure 1: 
 `risk_classification_setfit.ipynb`
-
 
 ### Figure 2 (Building lexicon steps)
 TODO: link to google slides
@@ -113,33 +108,26 @@ TODO: link to google slides
 ### Figure 4 (distribution of SRL matches)
 `barplot_srl_matches.py` 
 
-### Figure 5 (Inter-rater reliability)
-TODO add: 
-
-### Figure 6 (Boxplots prediction vs. true)
+### Figure 5 (Boxplots prediction vs. true)
 `suicide_risk_assessment_results.ipynb`
 
-
-
-
-## Tables 
+## Results: tables
 
 ### Table 2 
 `lexicon_source_descriptives.py`
 - input: lexicon pickle file
 - output: 
 
-### Table 3 (machine learning models)
-- `ctl_roberta_text.ipynb`
+### Table 3 (machine learning and deep learning models)
+- `ctl_mpnet_text.ipynb` and `ctl_distilbert_text.ipynb` 
 	```conda create -y -n finetuning python=3.10 pandas numpy scikit-learn seaborn matplotlib notebook torch==2.0.1 datasets==2.14.3 transformers==4.28.1 accelerate==0.15.0 optuna==3.2.0 evaluate```
-	Run on MIT OpenMind cluster
-
+	Ran on MIT OpenMind cluster
 - `suicide_risk_assessment.ipynb`
-- `suicide_risk_assessment_results.ipynb` formated table
-
-
+- `suicide_risk_assessment_results.ipynb` formatted table
 
 ### Table 4 (feature importance )
 - `suicide_risk_assessment_results.ipynb`
+
+<!-- ## Other results -->
 
 
