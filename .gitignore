@@ -1,3 +1,13 @@
+
+suicide_risk_lexicon_v1.0_counts.csv
+suicide_risk_lexicon_v1.0_matches_by_construct.json
+suicide_risk_lexicon_v1.0_matches_construct2doc.json
+suicide_risk_lexicon_v1.0_matches_doc2construct.json
+
+
+!data/input/lexicons/suicide_risk_lexicon_calibrated_unmatched_tokens_unvalidated_24-02-15T21-55-05.pickle
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

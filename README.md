@@ -1,12 +1,14 @@
 # Code for manuscript:
-TODO: add 
 
+Low et al. (2024). Building lexicons with Generative AI result in lightweight and interpretable text models with high content validity. ArXiv. 
 
-TODO: move all this to a different repo and import lexicon package
-
+<!-- 
+These: not mentioned because they are not used:
+ctl_cts_feature_extraction.ipynb
+ctl_cts_ml_models.ipynb 
+-->
 
 # Data
-
 
 ## Crisis Text Line data
 Crisis Text Line data is private and sensitive and was obtained de-identified through a collaboration and DUA with Crisis Text Line. If you obtain permission from Crisis Text Line, we are willing to share conversation IDs so the same conversations can be analyzed.
@@ -19,16 +21,24 @@ Final datasets (private):
 - test `train10_test_15perc_text_y_regression.csv`
 
 Extracted features:
-- `./data/input/ctl/ctl_dfs_features_{task}.pkl` where 
+- `./data/input/ctl/ctl_dfs_features_regression.pkl` 
+
 
 ## Suicide Risk Lexicon
 
 Lexicon saved in `construct-tracker` package
 
 ```python
+from construct_tracker import lexicon
+srl = lexicon.load_lexicon(name = 'srl_v1-0')
+```
+
+<!-- ```python
+from construct_tracker import lexicon
 srl = lexicon.load_lexicon(name = 'srl_v1-0')
 srl_prototypes = lexicon.load_lexicon(name = 'srl_prototypes_v1-0')
-```
+``` -->
+
 
 Unvalidated lexicon:
 - `data/input/lexicons/suicide_risk_lexicon_calibrated_unmatched_tokens_unvalidated_24-02-15T21-55-05.pickle`
@@ -72,7 +82,7 @@ All final figures in tables are available in `./data/output/figures/` and `./dat
 ## Preprocessing
 
 ### Creating dataset
-- `build_dataset.ipynb` obtain data from CTL servers (private)
+- `build_dataset.ipynb` obtain data from CTL servers (private, can share)
 - `build_post_session_survey_df.ipynb`
 - `train_test_split_ids.ipynb` in this repo. Takes downloaded data and creates datasets in the "risk assessment small" section 
 - `descriptive_statistics.ipynb` Some initial quick descriptive stats
@@ -124,6 +134,8 @@ TODO: link to google slides
 	Ran on MIT OpenMind cluster
 - `suicide_risk_assessment.ipynb`
 - `suicide_risk_assessment_results.ipynb` formatted table
+- `ctl_cts_feature_extraction` construct-text similarity feature extraction
+- `ctl_cts_ml_models` construct-text similarity machine learning models
 
 ### Table 4 (feature importance )
 - `suicide_risk_assessment_results.ipynb`
