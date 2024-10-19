@@ -1,6 +1,6 @@
 # Code for manuscript:
 
-Low et al. (2024). Building lexicons with Generative AI result in lightweight and interpretable text models with high content validity. ArXiv. 
+Low et al. (2024). Using generative AI to create lexicons for interpretable text models with high content validity. PsyArXiv. 
 
 <!-- 
 These: not mentioned because they are not used:
@@ -11,7 +11,7 @@ ctl_cts_ml_models.ipynb
 # Data
 
 ## Crisis Text Line data
-Crisis Text Line data is private and sensitive and was obtained de-identified through a collaboration and DUA with Crisis Text Line. If you obtain permission from Crisis Text Line, we are willing to share conversation IDs so the same conversations can be analyzed.
+Crisis Text Line data is private and sensitive and was obtained de-identified through a collaboration and DUA with Crisis Text Line. 
 
 Final datasets (private: contains text):
 
@@ -32,6 +32,7 @@ Lexicon saved in `construct-tracker` package
 !pip install construct-tracker
 from construct_tracker import lexicon
 srl = lexicon.load_lexicon(name = 'srl_v1-0')
+srl_prototypes = lexicon.load_lexicon(name = 'srl_prototypes_v1-0')
 ```
 
 <!-- ```python
