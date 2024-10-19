@@ -52,7 +52,7 @@ Unvalidated lexicon:
 run `$tree -L 2`, for example:
 
 `tree ./data/input -L 2`
-```
+
 
 input
 ├── CTL
@@ -74,7 +74,7 @@ output
 ├── ml_performance
 ├── tables
 ├── figures
-
+```
 
 
 # Code for reproducing preprocessing, figures, and tables 
