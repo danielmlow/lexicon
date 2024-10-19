@@ -13,14 +13,14 @@ ctl_cts_ml_models.ipynb
 ## Crisis Text Line data
 Crisis Text Line data is private and sensitive and was obtained de-identified through a collaboration and DUA with Crisis Text Line. If you obtain permission from Crisis Text Line, we are willing to share conversation IDs so the same conversations can be analyzed.
 
-Final datasets (private):
+Final datasets (private: contains text):
 
 `./data/input/ctl/`
 - train `train10_train_30perc_text_y_balanced_regression.csv`
 - val `train10_val_15perc_text_y_regression.csv`
 - test `train10_test_15perc_text_y_regression.csv`
 
-Extracted features:
+Extracted features (private: contains text):
 - `./data/input/ctl/ctl_dfs_features_regression.pkl` 
 
 
@@ -29,6 +29,7 @@ Extracted features:
 Lexicon saved in `construct-tracker` package
 
 ```python
+!pip install construct-tracker
 from construct_tracker import lexicon
 srl = lexicon.load_lexicon(name = 'srl_v1-0')
 ```
@@ -41,6 +42,7 @@ srl_prototypes = lexicon.load_lexicon(name = 'srl_prototypes_v1-0')
 
 
 Unvalidated lexicon:
+
 - `data/input/lexicons/suicide_risk_lexicon_calibrated_unmatched_tokens_unvalidated_24-02-15T21-55-05.pickle`
 
 
