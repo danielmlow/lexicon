@@ -1,6 +1,6 @@
 # Code for manuscript:
 
-Low et al. (2024). Using generative AI to create lexicons for interpretable text models with high content validity. PsyArXiv. 
+Low et al. (2024). Using large language models to create lexicons for interpretable text models with high content validity: the Suicide Risk Lexicon. PsyArXiv. 
 
 <!-- 
 These: not mentioned because they are not used:
